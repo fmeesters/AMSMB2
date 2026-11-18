@@ -6,6 +6,10 @@
 //  Copyright © 2018 Mousavian. Distributed under MIT license.
 //  All rights reserved.
 //
+//  Changed by Lanternfish on 2026-11-18: a request given up on closes the connection, an
+//  interrupted poll is tried again, and an unused variable is left out (see
+//  LANTERNFISH-PATCHES.md).
+//
 
 import Foundation
 import SMB2
@@ -399,7 +403,8 @@ extension SMB2Client {
     }
     
     private func wait(_ cb: inout CBData) async throws {
-        let startDate = Date()
+        // Lanternfish patch (D-299): upstream's unused `startDate` left out, so the package
+        // builds with warnings as errors.
         let source = switch try whichEvents() {
         case Int16(POLL_IN):
             DispatchSource.makeReadSource(fileDescriptor: fileDescriptor.rawValue)
@@ -413,14 +418,42 @@ extension SMB2Client {
         }
         
     }
+    // Lanternfish patch (D-299): a request given up on (a timeout, a failed poll) stays queued
+    // in libsmb2, its callbacks pointing at `cb` on the stack and at its folder or file. Its
+    // reply, read later by the next request or by the disconnect, called into memory that was
+    // gone. Giving up now closes the connection: destroying the context closes the socket
+    // before it cancels what is queued, and `generic_handler` ignores callbacks without a
+    // socket.
     private func wait_for_reply(_ cb: inout CBData) throws {
+        do {
+            try poll_for_reply(&cb)
+        } catch {
+            abandonConnection()
+            throw error
+        }
+    }
+
+    private func abandonConnection() {
+        guard let context else { return }
+        self.context = nil
+        smb2_destroy_context(context)
+    }
+
+    private func poll_for_reply(_ cb: inout CBData) throws {
         let startDate = Date()
         while !cb.isFinished {
             var pfd = pollfd()
             pfd.fd = fileDescriptor.rawValue
             pfd.events = try whichEvents()
-            if pfd.fd < 0 || (poll(&pfd, 1, 1000) < 0 && errno != .resourceTemporarilyUnavailable) {
-                throw POSIXError(errno, description: errorString)
+            if pfd.fd < 0 {
+                throw POSIXError(.socketNotConnected, description: errorString)
+            }
+            if poll(&pfd, 1, 1000) < 0 {
+                // Lanternfish patch (D-299): C's errno, not this class's `errno` (the last NT
+                // status's), so an interrupted poll is tried again instead of failing.
+                let code = Errno(rawValue: posixErrno())
+                if code == .interrupted || code == .resourceTemporarilyUnavailable { continue }
+                throw POSIXError(code, description: errorString)
             }
             
             if pfd.revents == 0 {
@@ -691,4 +724,9 @@ struct NTStatus: LocalizedError, Hashable, CustomStringConvertible, Sendable {
     }
     
     static let success = Self(rawValue: SMB2_STATUS_SUCCESS)
+}
+
+/// C's `errno`, which `SMB2Client.errno` hides inside the class (Lanternfish patch, D-299).
+private func posixErrno() -> Int32 {
+    errno
 }

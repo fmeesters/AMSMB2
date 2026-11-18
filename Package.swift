@@ -24,10 +24,6 @@ let package = Package(
             targets: ["AMSMB2"]
         ),
     ],
-    dependencies: [
-        .package(url: "https://github.com/apple/swift-system.git", .upToNextMajor(from: "1.6.4")),
-        .package(url: "https://github.com/apple/swift-atomics.git", .upToNextMajor(from: "1.2.0")),
-    ],
     targets: [
         .target(
             name: "libsmb2",
@@ -61,17 +57,8 @@ let package = Package(
             name: "AMSMB2",
             dependencies: [
                 "libsmb2",
-                .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: .nonDarwin)),
             ],
             path: "AMSMB2"
-        ),
-        .testTarget(
-            name: "AMSMB2Tests",
-            dependencies: [
-                "AMSMB2",
-                .product(name: "Atomics", package: "swift-atomics"),
-            ],
-            path: "AMSMB2Tests"
         ),
     ]
 )
