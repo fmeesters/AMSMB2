@@ -17,9 +17,6 @@ let package = Package(
             targets: ["AMSMB2"]
         ),
     ],
-    dependencies: [
-        .package(url: "https://github.com/apple/swift-atomics.git", .upToNextMajor(from: "1.2.0")),
-    ],
     targets: [
         .target(
             name: "libsmb2",
@@ -55,14 +52,6 @@ let package = Package(
                 "libsmb2",
             ],
             path: "AMSMB2"
-        ),
-        .testTarget(
-            name: "AMSMB2Tests",
-            dependencies: [
-                "AMSMB2",
-                .product(name: "Atomics", package: "swift-atomics"),
-            ],
-            path: "AMSMB2Tests"
         ),
     ],
     swiftLanguageVersions: [.v5]
