@@ -1,3 +1,5 @@
+> **About this fork.** This fork exists to publish the exact source of the AMSMB2 framework that the Lanternfish app ships, as the LGPL 2.1 (libsmb2) asks. It is upstream `master` plus small fixes, described in [LANTERNFISH-PATCHES.md](LANTERNFISH-PATCHES.md) and offered upstream in amosavian/AMSMB2#139 and amosavian/AMSMB2#140. It is not meant as a replacement: please use and report to [amosavian/AMSMB2](https://github.com/amosavian/AMSMB2). Thanks to Amir Abbas Mousavian for AMSMB2 and to Ronnie Sahlberg for libsmb2.
+
 # AMSMB2
 
 
