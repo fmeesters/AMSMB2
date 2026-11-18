@@ -19,6 +19,15 @@ version the Acknowledgements screen names (`LanternfishSMB.amsmb2Version`).
   requests, a crash in change notifications, credits, socket writes). Patch 1 again on top,
   and patch 2.
 
+## Offered upstream
+
+Patches 1 and 2 are offered to AMSMB2 as issue
+[#139](https://github.com/amosavian/AMSMB2/issues/139) and pull request
+[#140](https://github.com/amosavian/AMSMB2/pull/140) (2026-11-18; related: #136, the same
+cause for a `CHANGE_NOTIFY` request). Once they are in upstream, this copy follows upstream
+again without them. The README's note "About this fork" (added 2026-11-18) says why the fork
+exists.
+
 ## Patch 1 (2026-11-18): a request given up on closes the connection (`AMSMB2/Context.swift`)
 
 `SMB2Client.wait_for_reply` threw on a timeout or a failed `poll()` and left the request
