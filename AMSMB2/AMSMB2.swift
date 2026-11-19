@@ -1133,6 +1133,55 @@ public class SMB2Manager: NSObject, NSSecureCoding, Codable, NSCopying, CustomRe
         }
     }
 
+    // Lanternfish patch 3 (2026-11-19): a write in place.
+    /**
+     Writes data into an existing file at the given offset, leaving the rest of the file as it
+     is: the bytes before and after the written range stay, a write past the end makes the file
+     longer. The file is flushed before the completion handler is called.
+
+     - Parameters:
+       - data: data to write. You can pass either `Data`, `[UInt8]` or `NSData` object.
+       - path: path of the existing file.
+       - offset: where in the file the data goes.
+       - completionHandler: closure will be run after writing is completed.
+     */
+    open func write<DataType: DataProtocol>(
+        data: DataType, toPath path: String, atOffset offset: Int64, completionHandler: SimpleCompletionHandler
+    ) {
+        let data = Data(data)
+        with(completionHandler: completionHandler) { client in
+            let file = try SMB2FileHandle(forPatchingAtPath: path, on: client)
+            let chunkSize = file.optimizedWriteSize
+            var written = 0
+            while written < data.count {
+                let end = min(data.count, written + chunkSize)
+                let count = try file.write(toAbsoluteOffset: UInt64(offset) + UInt64(written), data: data[written..<end])
+                guard count > 0 else {
+                    throw POSIXError(.ioError, description: "Inconsistency in writing to SMB file handle.")
+                }
+                written += count
+            }
+            try file.fsync()
+        }
+    }
+
+    /**
+     Writes data into an existing file at the given offset, leaving the rest of the file as it
+     is: the bytes before and after the written range stay, a write past the end makes the file
+     longer. The file is flushed before returning.
+
+     - Parameters:
+       - data: data to write. You can pass either `Data`, `[UInt8]` or `NSData` object.
+       - path: path of the existing file.
+       - offset: where in the file the data goes.
+     */
+    open func write<DataType: DataProtocol>(data: DataType, toPath path: String, atOffset offset: Int64) async throws {
+        let data = Data(data)
+        try await withCheckedThrowingContinuation { continuation in
+            write(data: data, toPath: path, atOffset: offset, completionHandler: asyncHandler(continuation))
+        }
+    }
+
     /**
      Creates and writes input stream to file. With reporting progress on about every 1MiB.
 

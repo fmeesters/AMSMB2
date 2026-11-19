@@ -97,6 +97,12 @@ final class SMB2FileHandle: @unchecked Sendable {
         try self.init(path, .readWrite, options: [.create, .exclusiveCreate], on: client)
     }
 
+    // Lanternfish patch 3 (2026-11-19): an existing file opened for writing at offsets, neither
+    // truncated nor in append mode, so `write(toAbsoluteOffset:data:)` changes only those bytes.
+    convenience init(forPatchingAtPath path: String, on client: SMB2Client) throws {
+        try self.init(path, .readWrite, on: client)
+    }
+
     convenience init(
         path: String,
         opLock: OpLock = .none,

@@ -4,7 +4,7 @@ This is AMSMB2 at upstream `master`, commit `90737c4` (2026-04-24, four commits 
 4.0.3 release; <https://github.com/amosavian/AMSMB2/tree/90737c4>), with libsmb2 at commit
 `aedafb2` (`libsmb2-6.2-163-gaedafb2`, 2026-01-27) as that commit names it, and Lanternfish's
 changes to AMSMB2's Swift sources below (D-299). libsmb2 is not changed. The patched source is
-published at <https://github.com/fmeesters/AMSMB2/tree/master-90737c4-lanternfish.2>, the
+published at <https://github.com/fmeesters/AMSMB2/tree/master-90737c4-lanternfish.3>, the
 version the Acknowledgements screen names (`LanternfishSMB.amsmb2Version`).
 
 ## History
@@ -18,6 +18,7 @@ version the Acknowledgements screen names (`LanternfishSMB.amsmb2Version`).
   (security fixes for out-of-bounds writes a server could cause, responses to cancelled
   requests, a crash in change notifications, credits, socket writes). Patch 1 again on top,
   and patch 2.
+- **master-90737c4-lanternfish.3** (2026-11-19): patch 3, a write in place.
 
 ## Offered upstream
 
@@ -55,6 +56,16 @@ process crashed with SIGSEGV on 4.0.3 and on `master` at `90737c4`, and passes w
 
 `SMB2Client.wait(_:)` (an unfinished async variant upstream does not call) declared
 `startDate` without using it; Lanternfish builds its packages with warnings as errors.
+
+## Patch 3 (2026-11-19): a write in place (`AMSMB2/AMSMB2.swift`, `AMSMB2/FileHandle.swift`)
+
+`SMB2Manager` could write a whole file, or write from an offset after cutting the file off
+there (`append(data:toPath:offset:)`). Lanternfish writes chapters into an MKV file on a share
+(D-302), which changes a few bytes at the start and the end of the file and must leave the rest
+as it is. `write(data:toPath:atOffset:)` (with a completion handler and as `async`) opens the
+existing file for reading and writing, neither truncated nor in append mode
+(`SMB2FileHandle(forPatchingAtPath:)`), writes at the offset with `pwrite`, and flushes. Not
+offered upstream yet.
 
 ## Also left out
 
